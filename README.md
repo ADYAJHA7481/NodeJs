@@ -1,4 +1,4 @@
-#Node.js
+Node.js
 Node.js® is a JavaScript runtime built on Chrome's V8 JavaScript engine. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient. Node.js' package ecosystem, npm, is the largest ecosystem of open source libraries in the world.
 
 Key Features:
@@ -16,6 +16,4 @@ Data streaming
 Server-side applications
 
 Installation and Setup:
-To install Node.js, visit the official website and download the installer for your operating system. For package management, npm is included with Node.js. You can verify the installation by running:
-node -v
-npm -v
+To install Node.js, visit the official website and download the installer for your operating system. For package management, npm is included with Node.js.
