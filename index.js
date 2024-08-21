@@ -1,78 +1,118 @@
+const { faker } = require("@faker-js/faker");
+const mysql = require("mysql2");
 const express = require("express");
 const app = express();
-const port = 8080;
 const path = require("path");
-const { v4: uuidv4 } = require('uuid');
 const methodOverride = require("method-override");
 
-app.use(express.urlencoded({extended:true}));
 app.use(methodOverride("_method"));
+app.use(express.json());
+app.use(express.urlencoded({extended:true}));
+app.set("view engine", "ejs");
+app.set("views",path.join(__dirname,"/views"));
 
-app.set("view engine","ejs");
-app.set("views",path.join(__dirname,"views"));
 
-app.use(express.static(path.join(__dirname,"public")));
-
-let posts = [
-    {
-        id:uuidv4(),
-        username : "Adya",
-        content : "I love coding"
-    },
-    {
-        id:uuidv4(),
-        username : "Divya",
-        content : "Hard work is important to archeive success"
-    },
-    {
-        id:uuidv4(),
-        username : "Jaya",
-        content : "I love my Family"
-    },
-];
-
-app.get("/posts",(req,res)=>{
-    res.render("index.ejs",{posts});
+const connection =  mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    database: "college",
+    password: "adya@123.",
 });
 
-app.get("/posts/new",(req,res)=>{
-    res.render("new.ejs");
+let getRandomUser = () => {
+    return [
+      faker.string.uuid(),
+      faker.internet.userName(),
+      faker.internet.email(),
+      faker.internet.password(),
+    ];
+  }
+
+// connection.query(q,[data], (err, result) => {
+//     if (err) {
+//         console.error('Error executing query:', err);
+//         return;
+//     }
+//     console.log('Tables:', result);
+// });
+
+
+  //Home Route
+app.get("/",(req,res) => {
+    let q = `SELECT count(*) FROM user`;
+    connection.query(q, (err, result) => {
+        if (err) {
+         console.error('Error executing query:', err);
+            res.send(err);
+        }
+        let count = result[0]["count(*)"];
+        res.render("home.ejs",{count});
+    }); 
+    
 });
 
-app.post("/posts",(req,res)=>{
-    let {username,content} = req.body;
-    let id = uuidv4();
-    posts.push({id,username,content});
-    res.redirect("/posts");
+//Show Route
+app.get("/user",(req,res) => {
+    let q = `SELECT * FROM user`;
+    connection.query(q, (err,users) => {
+        if (err) {
+         console.error('Error executing query:', err);
+            res.send(err);
+        }
+        res.render("showusers.ejs",{users});
+    }); 
+    
 });
 
-app.get("/posts/:id",(req,res)=>{
+//Edit Route
+app.get("/user/:id/edit",(req,res) => {
     let {id} = req.params;
-    let post = posts.find((p) => id === p.id);
-    res.render("show.ejs",{post})
+    let q = `SELECT * FROM user WHERE id = ? `;
+    connection.query(q,[id] ,(err,users) => {
+        if (err) {
+         console.error('Error executing query:', err);
+            return res.send(err);
+        }
+        let user = users[0];
+        if (users.length > 0) {
+            res.render("edit.ejs", { user });
+        } else {
+            res.send('User not found');
+        }
+        
+        console.log(users);
+    });
 });
 
-app.patch("/posts/:id",(req,res) => {
+//Update (DB) Route
+app.patch("/user/:id",(req,res) =>{
     let {id} = req.params;
-    let newContent = req.body.content;
-    let post = posts.find((p) => id === p.id);
-    post.content=newContent;
-    console.log(post);
-    res.redirect("/posts");
+    let {password: formPass, username: newUsername} = req.body;
+    let q = `SELECT * FROM user WHERE id = '${id}' `;
+    try {
+        connection.query(q ,(err,result) => {
+            if (err) throw err;
+            let user = result[0];
+            if(formPass != user.password){
+               res.send("WRONG password");
+            }else{
+                let q2 = `UPDATE user SET username = '${newUsername}' WHERE id = '${id}' `;
+                connection.query(q2,(err,result) =>{
+                    if(err) throw err;
+                    return res.send("Username updated successfully");
+                })
+            }
+        });
+    } catch (error) {
+        console.log(err);
+        return res.send("Some err in DB");
+    }
 });
 
-app.get("/posts/:id/edit",(req,res) => {
-    let {id} = req.params;
-    let post = posts.find((p) => id === p.id);
-    res.render("edit.ejs",{post});
-});
 
-app.delete("/posts/:id",(req,res) => {
-    let {id} = req.params;
-    posts = posts.filter((p) => id !== p.id);
-    res.redirect("/posts");
-});
 
-app.listen(port,() => {
-    console .log(`app is listening on ${port}`);
+let port = 8080;
+
+app.listen("8080",() =>{
+    console.log(`server is listening to port ${port}`);
 });
